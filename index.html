@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameMapSized - Compare Video Game Worlds</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        
+        /* Blueprint grid background for the visualizer */
+        .blueprint-bg {
+            background-color: #1e293b;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+            background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+            background-position: center center;
+        }
+
+        /* Custom styling for the opacity slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+        
+        /* Map Image containers */
+        .map-layer {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 py-4 px-6 shadow-md z-10">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-map-location-dot text-blue-500 text-2xl"></i>
+                <h1 class="text-2xl font-bold tracking-tight">GameMap<span class="text-blue-500">Sized</span></h1>
+            </div>
+            <div class="text-sm text-slate-400 hidden sm:block">
+                Compare Video Game World Sizes
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Controls & Stats -->
+        <div class="flex flex-col gap-6 lg:col-span-1">
+            
+            <!-- Selectors Card -->
+            <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-lg">
+                <h2 class="text-lg font-semibold mb-4 text-slate-200">Select Maps</h2>
+                
+                <!-- Map A Select -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Map A (Base)</label>
+                    <div class="relative">
+                        <select id="mapA-select" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg pl-3 pr-10 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <!-- Populated by JS -->
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                            <i class="fa-solid fa-chevron-down text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swap Button -->
+                <div class="flex justify-center -my-2 relative z-10">
+                    <button id="swap-btn" class="bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-full w-8 h-8 flex items-center justify-center transition-colors border-2 border-slate-800" title="Swap Maps">
+                        <i class="fa-solid fa-arrow-right-arrow-left rotate-90"></i>
+                    </button>
+                </div>
+
+                <!-- Map B Select -->
+                <div class="mt-4 mb-4">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Map B (Overlay)</label>
+                    <div class="relative">
+                        <select id="mapB-select" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg pl-3 pr-10 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <!-- Populated by JS -->
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                            <i class="fa-solid fa-chevron-down text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overlay Settings -->
+                <div class="pt-4 border-t border-slate-700 mt-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overlay Opacity</label>
+                        <span id="opacity-val" class="text-xs text-blue-400 font-medium">80%</span>
+                    </div>
+                    <input type="range" id="opacity-slider" min="0" max="100" value="80" class="w-full">
+                </div>
+            </div>
+
+            <!-- Stats Card -->
+            <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-lg flex-grow">
+                <h2 class="text-lg font-semibold mb-4 text-slate-200">Comparison Stats</h2>
+                
+                <div class="space-y-4">
+                    <!-- Map A Stats -->
+                    <div class="p-3 bg-slate-900/50 rounded-lg border-l-4" id="stats-a-border">
+                        <h3 class="font-bold text-lg mb-1" id="stats-a-name">Map A Name</h3>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div><span class="text-slate-500">Area:</span> <span class="font-semibold" id="stats-a-area">-</span> km&sup2;</div>
+                            <div><span class="text-slate-500">Bounding:</span> <span class="font-semibold" id="stats-a-dims">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Map B Stats -->
+                    <div class="p-3 bg-slate-900/50 rounded-lg border-l-4" id="stats-b-border">
+                        <h3 class="font-bold text-lg mb-1" id="stats-b-name">Map B Name</h3>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div><span class="text-slate-500">Area:</span> <span class="font-semibold" id="stats-b-area">-</span> km&sup2;</div>
+                            <div><span class="text-slate-500">Bounding:</span> <span class="font-semibold" id="stats-b-dims">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Conclusion Text -->
+                    <div class="mt-6 pt-4 border-t border-slate-700 text-center">
+                        <p class="text-lg leading-relaxed text-slate-300" id="stats-conclusion">
+                            <!-- Populated by JS -->
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Visualizer -->
+        <div class="lg:col-span-2 flex flex-col">
+            <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg flex-grow flex flex-col overflow-hidden min-h-[500px]">
+                
+                <!-- Visualizer Toolbar -->
+                <div class="px-4 py-3 border-b border-slate-700 bg-slate-800/80 flex justify-between items-center">
+                    <div class="text-sm text-slate-400 font-medium">Relative Scale View</div>
+                    <div class="flex items-center gap-4 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-3 h-3 rounded-full" id="legend-a-color"></div>
+                            <span id="legend-a-name" class="truncate max-w-[100px]">Map A</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-3 h-3 rounded-full" id="legend-b-color"></div>
+                            <span id="legend-b-name" class="truncate max-w-[100px]">Map B</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actual Map Area -->
+                <div class="flex-grow blueprint-bg relative p-4 flex items-center justify-center overflow-hidden">
+                    
+                    <!-- This container maintains the aspect ratio of the bounding box of BOTH maps -->
+                    <!-- This ensures both maps fit on screen while maintaining perfect mathematical scale -->
+                    <div id="scale-wrapper" class="relative w-full max-h-full">
+                        
+                        <!-- Map A -->
+                        <div id="map-a-layer" class="map-layer"></div>
+                        
+                        <!-- Map B -->
+                        <div id="map-b-layer" class="map-layer"></div>
+
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-center text-xs text-slate-500 mt-4">
+                Images are scaled relative to their bounding box dimensions (Width &times; Height) in kilometers.
+            </p>
+        </div>
+    </main>
+
+    <script>
+        // =========================================================================
+        // 🗺️ HOW TO ADD MORE MAPS TO THE WEBSITE 🗺️
+        // =========================================================================
+        // Simply add a new set of data inside the `GAME_MAPS` list below.
+        // Copy an existing block, add a comma, and paste it.
+        //
+        // Data Properties:
+        //  - id: A unique short word/name (no spaces, e.g., 'mymap')
+        //  - name: The full display name of the map
+        //  - widthKm: The real-world physical width of the map in kilometers
+        //  - heightKm: The real-world physical height of the map in kilometers
+        //  - areaSqKm: The estimated playable area in square kilometers
+        //  - imageUrl: A link to an image of the map. 
+        //              (Transparent PNGs look the best when overlapping!)
+        //  - color: A hex color used for the borders and UI accents.
+        // =========================================================================
+
+        const GAME_MAPS = [
+            {
+                id: 'gtav',
+                name: 'Grand Theft Auto V',
+                widthKm: 8.5,
+                heightKm: 12.5,
+                areaSqKm: 75.8,
+                imageUrl: 'https://i.pinimg.com/736x/71/f1/1f/71f11f18f046489b3a4765b51a3af22d.jpg',
+                color: '#10b981' // Emerald
+            },
+            {
+                id: 'fh5',
+                name: 'Forza Horizon 5',
+                widthKm: 16,
+                heightKm: 9.6,
+                areaSqKm: 107,
+                imageUrl: 'https://global.discourse-cdn.com/forza/original/3X/5/f/5f3d531ddb81de3340252f30064c230874fa05c6.jpeg',
+                color: '#10b981' // Emerald
+            },
+            {
+                id: 'skyrim',
+                name: 'Skyrim',
+                widthKm: 7.0,
+                heightKm: 5.5,
+                areaSqKm: 37.1,
+                imageUrl: 'https://www.wikihow.com/images/thumb/9/95/Use-the-in-Game-Map-in-Skyrim-Step-2-Version-2.jpg/v4-460px-Use-the-in-Game-Map-in-Skyrim-Step-2-Version-2.jpg',
+                color: '#3b82f6' // Blue
+            },
+            {
+                id: 'botw',
+                name: 'Zelda: Breath of the Wild',
+                widthKm: 10.0,
+                heightKm: 8.0,
+                areaSqKm: 72.0,
+                imageUrl: 'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/e3b63315-f949-4899-bfec-5e53edcb71bc/deelhyn-4ea0a8fb-ed50-43b3-83af-bee660fca7fd.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcL2UzYjYzMzE1LWY5NDktNDg5OS1iZmVjLTVlNTNlZGNiNzFiY1wvZGVlbGh5bi00ZWEwYThmYi1lZDUwLTQzYjMtODNhZi1iZWU2NjBmY2E3ZmQucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.YygtgTRjuGzqC80jzmi9dlWmCTEV3uqgi7CRI0WBt-s',
+                color: '#eab308' // Yellow
+            },
+            {
+                id: 'fortnite1',
+                name: 'Fortnite (Chapter 1)',
+                widthKm: 2.5,
+                heightKm: 2.5,
+                areaSqKm: 6.25,
+                imageUrl: 'https://i.redd.it/d0y65yxub5h41.png',
+                color: '#a855f7' // Purple
+            },
+            {
+                id: 'rdr2',
+                name: 'Red Dead Redemption 2',
+                widthKm: 11.0,
+                heightKm: 8.0,
+                areaSqKm: 75.0,
+                imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXcZN7CF7GY9k6GCQ4LZjsy4lVZCRlPYyiII24spcrLD4HEBc6YiAH_r4&s=10',
+                color: '#ef4444' // Red
+            },
+            {
+                id: 'thecrew2',
+                name: 'The Crew 2',
+                widthKm: 90.0,
+                heightKm: 60.0,
+                areaSqKm: 5200.0,
+                imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQqUdYOr8vOg4LEGSAdWKRoNCwoN4WHV34efzmGORzAzQ&s=10',
+                color: '#ef4444' // Red
+            },
+            // ⬇️ ADD YOUR NEW MAPS BELOW HERE ⬇️
+
+            {
+                id: 'fh4',
+                name: 'Forza Horizon 4',
+                widthKm: 12.0,
+                heightKm: 10.0,
+                areaSqKm: 97.5,
+                imageUrl: 'https://preview.redd.it/hi-res-map-for-planning-fh4-route-creations-couldnt-find-a-v0-zr2ipngj98u11.png?auto=webp&s=95c9df81a9176b511ede978c29500770f1ec71fd',
+                color: '#10b981'
+            },
+            //{
+            //    id: 'gta4',
+            //    name: 'Grand Theft Auto IV',
+            //    widthKm: 4.5,
+            //    heightKm: 4.5,
+            //    areaSqKm: 16.1,
+            //    imageUrl: 'https://gameaccessibilityguidelines.com/wp-content/uploads/2014/04/gtamap-e1398074325619.jpg',
+            //    color: '#64748b'
+            //},
+            {
+                id: 'fallout4',
+                name: 'Fallout 4',
+                widthKm: 3.1,
+                heightKm: 3.1,
+                areaSqKm: 9.75,
+                imageUrl: 'https://game-maps.com/Fallout4/img/fallout-4-world-map.jpg',
+                color: '#3b82f6'
+            },
+            {
+                id: 'fnv',
+                name: 'Fallout: New Vegas',
+                widthKm: 3.0,
+                heightKm: 3.0,
+                areaSqKm: 8.5,
+                imageUrl: 'https://static.wikia.nocookie.net/fallout/images/2/2f/MojaveMapBW.jpg/revision/latest/scale-to-width-down/284?cb=20110210094136',
+                color: '#d97706'
+            },
+            {
+                id: 'fallout3',
+                name: 'Fallout 3',
+                widthKm: 2.9,
+                heightKm: 2.9,
+                areaSqKm: 8.46,
+                imageUrl: 'https://static.wikia.nocookie.net/fallout/images/8/88/Fo3_worldmap.png/revision/latest?cb=20220728110856',
+                color: '#16a34a'
+            },
+            {
+                id: 'fallout76',
+                name: 'Fallout 76',
+                widthKm: 6.2,
+                heightKm: 6.2,
+                areaSqKm: 39.0,
+                imageUrl: 'https://game-maps.com/Fallout-76/img/Treasure-Maps-The-Forest-Fallout-76-Map.jpg',
+                color: '#eab308'
+            },
+            {
+                id: 'jc3',
+                name: 'Just Cause 3',
+                widthKm: 32.2,
+                heightKm: 32.2,
+                areaSqKm: 1036.0,
+                imageUrl: 'https://static.wikia.nocookie.net/justcause/images/e/ec/Just_Cause_3_Map_with_DLC_Locations.png/revision/latest?cb=20230427004738',
+                color: '#ea580c'
+            },
+            {
+                id: 'cp2077',
+                name: 'Cyberpunk 2077',
+                widthKm: 10.0,
+                heightKm: 10.0,
+                areaSqKm: 100.0,
+                imageUrl: 'https://maps.piggyback.com/_images/CBP.webp?w=3840&q=75',
+                color: '#e11d48'
+            },
+            // ⬇️ ADD YOUR NEW MAPS BELOW HERE ⬇️
+            {
+                id: 'fuel',
+                name: 'Fuel',
+                widthKm: 120.0,
+                heightKm: 120.0,
+                areaSqKm: 14400.0,
+                imageUrl: 'https://static.wikia.nocookie.net/fuelthegame/images/c/c9/Fuelmapallpavedroads2.jpg/revision/latest/scale-to-width-down/2875?cb=20090828162503',
+                color: '#f59e0b'
+            },
+            {
+                id: 'jc4',
+                name: 'Just Cause 4',
+                widthKm: 32.2,
+                heightKm: 32.2,
+                areaSqKm: 1036.0,
+                imageUrl: 'https://preview.redd.it/just-cause-4-full-map-all-locations-secrets-v0-xy43exe6wx921.png?width=3528&format=png&auto=webp&s=2f8faa7258f3c2103aa19ac82e17732554db34d1',
+                color: '#ea580c'
+            },
+            {
+                id: 'jc2',
+                name: 'Just Cause 2',
+                widthKm: 32.2,
+                heightKm: 32.2,
+                areaSqKm: 1036.0,
+                imageUrl: 'https://spuf.org/wp-content/uploads/2021/03/just-cause-2-map_reupload.jpg',
+                color: '#ea580c'
+            },
+            {
+                id: 'spiderman1',
+                name: 'Marvel\'s Spider-Man',
+                widthKm: 4.5,
+                heightKm: 3.5,
+                areaSqKm: 11.9,
+                imageUrl: 'https://placehold.co/460x600/dc2626/ffffff?text=Spider-Man',
+                color: '#dc2626'
+            },
+            {
+                id: 'spiderman2',
+                name: 'Marvel\'s Spider-Man 2',
+                widthKm: 5.5,
+                heightKm: 6.5,
+                areaSqKm: 24.0,
+                imageUrl: 'https://i.redd.it/23co1jt1f3wb1.jpg',
+                color: '#dc2626'
+            },
+            {
+                id: 'kcd2',
+                name: 'Kingdom Come: Deliverance 2',
+                widthKm: 6.5,
+                heightKm: 5.5,
+                areaSqKm: 32.0,
+                imageUrl: 'https://i.redd.it/j4vo19k26wce1.jpeg',
+                color: '#fbbf24'
+            },
+            {
+                id: 'eldenring',
+                name: 'Elden Ring',
+                widthKm: 10.0,
+                heightKm: 10.0,
+                areaSqKm: 100.0,
+                imageUrl: 'https://i.redd.it/q6m3ni3st4s81.jpg',
+                color: '#d4af37'
+            },
+            {
+                id: 'usa',
+                name: 'United States of America',
+                widthKm: 4500.0,
+                heightKm: 2660.0,
+                areaSqKm: 8080000.0,
+                imageUrl: 'https://as2.ftcdn.net/jpg/03/53/79/35/1000_F_353793520_TZ4N1QUIHtg2FDXeCOaB3hB8QZ2CUOIn.jpg',
+                color: '#3b82f6'
+            },
+            {
+                id: 'ohio',
+                name: 'Ohio',
+                widthKm: 355.0,
+                heightKm: 355.0,
+                areaSqKm: 116096.0,
+                imageUrl: 'https://ohio.gov/wps/wcm/connect/gov/bc7492d9-f788-4b74-9159-3c8a87148aea/1/StateMapCountiesAsset+1.png?MOD=AJPERES',
+                color: '#b91c1c'
+            },
+            {
+                id: 'minecraft',
+                name: 'Minecraft World',
+                widthKm: 60000.0,
+                heightKm: 60000.0,
+                areaSqKm: 3600000000.0,
+                imageUrl: 'https://i.redd.it/color-accurate-map-of-the-entire-minecraft-world-full-v0-iexgou9j4gse1.png?width=3908&format=png&auto=webp&s=c0c6a9b25da852349c88f94ca8a6bceadb935c56',
+                color: '#b91c1c'
+            },
+            // ⬇️ ADD YOUR NEW MAPS BELOW HERE ⬇️
+            {
+                id: 'crimsondesert',
+                name: 'Crimson Desert',
+                widthKm: 14.7,
+                heightKm: 14.7,
+                areaSqKm: 216.1,
+                imageUrl: 'https://images.squarespace-cdn.com/content/v1/55ef0e29e4b099e22cdc9eea/b66da88c-4850-4956-8503-d434024344dc/cdfullsizemap.jpg',
+                color: '#7f1d1d'
+            }
+            // ⬆️ ADD YOUR NEW MAPS ABOVE HERE ⬆️
+        ];
+
+        // =========================================================================
+        // ⚙️ WEBSITE LOGIC (You shouldn't need to edit below here) ⚙️
+        // =========================================================================
+
+        // DOM Elements
+        const selectA = document.getElementById('mapA-select');
+        const selectB = document.getElementById('mapB-select');
+        const swapBtn = document.getElementById('swap-btn');
+        const opacitySlider = document.getElementById('opacity-slider');
+        const opacityVal = document.getElementById('opacity-val');
+        
+        const scaleWrapper = document.getElementById('scale-wrapper');
+        const layerA = document.getElementById('map-a-layer');
+        const layerB = document.getElementById('map-b-layer');
+
+        // Initialization
+        function init() {
+            // Sort maps alphabetically for the dropdowns
+            const sortedMaps = [...GAME_MAPS].sort((a, b) => a.name.localeCompare(b.name));
+
+            // Populate Dropdowns
+            sortedMaps.forEach(map => {
+                const optionA = new Option(map.name, map.id);
+                const optionB = new Option(map.name, map.id);
+                selectA.add(optionA);
+                selectB.add(optionB);
+            });
+
+            // Set initial default selections (first two items if available)
+            if (GAME_MAPS.length >= 2) {
+                selectA.value = GAME_MAPS[0].id;
+                selectB.value = GAME_MAPS[1].id;
+            }
+
+            // Event Listeners
+            selectA.addEventListener('change', updateVisuals);
+            selectB.addEventListener('change', updateVisuals);
+            
+            opacitySlider.addEventListener('input', (e) => {
+                const val = e.target.value;
+                opacityVal.innerText = `${val}%`;
+                layerB.style.opacity = val / 100;
+            });
+
+            swapBtn.addEventListener('click', () => {
+                const temp = selectA.value;
+                selectA.value = selectB.value;
+                selectB.value = temp;
+                updateVisuals();
+            });
+
+            // Initial Render
+            updateVisuals();
+            
+            // Initial Opacity set
+            layerB.style.opacity = opacitySlider.value / 100;
+        }
+
+        // Helper to find map data by ID
+        function getMapData(id) {
+            return GAME_MAPS.find(m => m.id === id);
+        }
+
+        // Main function to calculate scales and update the UI
+        function updateVisuals() {
+            const mapA = getMapData(selectA.value);
+            const mapB = getMapData(selectB.value);
+
+            if (!mapA || !mapB) return;
+
+            // 1. Calculate the master bounding box needed to fit BOTH maps
+            const maxW = Math.max(mapA.widthKm, mapB.widthKm);
+            const maxH = Math.max(mapA.heightKm, mapB.heightKm);
+
+            // Set the aspect ratio of the wrapper container so it mathematically 
+            // matches the footprint of our maximum dimensions.
+            scaleWrapper.style.aspectRatio = `${maxW} / ${maxH}`;
+
+            // 2. Render Map A Layer
+            // Calculate percentage size relative to the master bounding box
+            const widthPctA = (mapA.widthKm / maxW) * 100;
+            const heightPctA = (mapA.heightKm / maxH) * 100;
+            
+            layerA.style.width = `${widthPctA}%`;
+            layerA.style.height = `${heightPctA}%`;
+            layerA.style.backgroundImage = `url('${mapA.imageUrl}')`;
+            layerA.style.border = `3px solid ${mapA.color}`;
+            // Optional: Background color slightly tinted to make transparent images visible
+            layerA.style.backgroundColor = `${mapA.color}15`; 
+
+            // 3. Render Map B Layer
+            const widthPctB = (mapB.widthKm / maxW) * 100;
+            const heightPctB = (mapB.heightKm / maxH) * 100;
+
+            layerB.style.width = `${widthPctB}%`;
+            layerB.style.height = `${heightPctB}%`;
+            layerB.style.backgroundImage = `url('${mapB.imageUrl}')`;
+            layerB.style.border = `3px solid ${mapB.color}`;
+            layerB.style.backgroundColor = `${mapB.color}15`;
+
+            // 4. Update Stats & UI text
+            updateStatsUI(mapA, mapB);
+        }
+
+        function updateStatsUI(mapA, mapB) {
+            // Legends
+            document.getElementById('legend-a-name').innerText = mapA.name;
+            document.getElementById('legend-a-color').style.backgroundColor = mapA.color;
+            document.getElementById('legend-b-name').innerText = mapB.name;
+            document.getElementById('legend-b-color').style.backgroundColor = mapB.color;
+
+            // Stats Panels
+            document.getElementById('stats-a-name').innerText = mapA.name;
+            document.getElementById('stats-a-name').style.color = mapA.color;
+            document.getElementById('stats-a-border').style.borderColor = mapA.color;
+            document.getElementById('stats-a-area').innerText = mapA.areaSqKm.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 2});
+            document.getElementById('stats-a-dims').innerText = `${mapA.widthKm}x${mapA.heightKm} km`;
+
+            document.getElementById('stats-b-name').innerText = mapB.name;
+            document.getElementById('stats-b-name').style.color = mapB.color;
+            document.getElementById('stats-b-border').style.borderColor = mapB.color;
+            document.getElementById('stats-b-area').innerText = mapB.areaSqKm.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 2});
+            document.getElementById('stats-b-dims').innerText = `${mapB.widthKm}x${mapB.heightKm} km`;
+
+            // Conclusion Logic (Based on Area)
+            const ratio = mapA.areaSqKm / mapB.areaSqKm;
+            let conclusion = "";
+            
+            if (ratio > 1.05) {
+                conclusion = `<span style="color:${mapA.color}" class="font-bold">${mapA.name}</span> is roughly <span class="text-white font-bold">${ratio.toFixed(1)}x larger</span> than <span style="color:${mapB.color}" class="font-bold">${mapB.name}</span>.`;
+            } else if (ratio < 0.95) {
+                const inverseRatio = mapB.areaSqKm / mapA.areaSqKm;
+                conclusion = `<span style="color:${mapB.color}" class="font-bold">${mapB.name}</span> is roughly <span class="text-white font-bold">${inverseRatio.toFixed(1)}x larger</span> than <span style="color:${mapA.color}" class="font-bold">${mapA.name}</span>.`;
+            } else {
+                conclusion = `<span style="color:${mapA.color}" class="font-bold">${mapA.name}</span> and <span style="color:${mapB.color}" class="font-bold">${mapB.name}</span> are nearly <span class="text-white font-bold">identical</span> in size.`;
+            }
+
+            document.getElementById('stats-conclusion').innerHTML = conclusion;
+        }
+
+        // Start the app when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
